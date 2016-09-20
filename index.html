@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<script src="js/mui.min.js"></script>
+		<script src="http://libs.baidu.com/jquery/2.1.4/jquery.min.js"></script>
+		<link href="css/mui.min.css" rel="stylesheet" />
+		<script type="text/javascript" charset="utf-8">
+		mui.init()
+		
+		var userNameNum = null;
+		var passWordNum = null;
+		var tokenValue = null;
+		var author = null;
+//与app交互
+		function setupWebViewJavascriptBridge(callback) {
+		    if (window.WebViewJavascriptBridge) { return callback(WebViewJavascriptBridge); }
+		    if (window.WVJBCallbacks) { return window.WVJBCallbacks.push(callback); }
+		    window.WVJBCallbacks = [callback];
+		    var WVJBIframe = document.createElement('iframe');
+		    WVJBIframe.style.display = 'none';
+		    WVJBIframe.src = 'wvjbscheme://__BRIDGE_LOADED__';
+		    document.documentElement.appendChild(WVJBIframe);
+		    setTimeout(function() { document.documentElement.removeChild(WVJBIframe) }, 0)
+		}
+
+		setupWebViewJavascriptBridge(function(bridge) {
+		    
+			bridge.registerHandler('OCTOJS', function(data, responseCallback) {
+		        console.log("JS Echo called with:", data)
+		        responseCallback(data)
+		        if(data.UserName && data.PassWord){
+		        	userNameNum = data.UserName;
+		        passWordNum = data.PassWord;
+
+				tokenValue = GetTokenValue(userNameNum, passWordNum);
+				author = 'bearer ' + tokenValue;
+				setupData(author);
+				}
+		    })
+		    bridge.callHandler('JSTOOC', {'key':'value'}, function responseCallback(responseData) {
+		        console.log("JS received response:", responseData)
+		    })
+		    
+		})
+
+
+			function GetTokenValue(userName, passWord) {
+				var result = "";
+				mui.ajax('http://192.168.82.12/token', {
+					data: {
+						grant_type: 'password',
+						client_id: 'baoluo_ios',
+						client_secret: '123456',
+						username: userName,
+						password: passWord
+					},
+					dataType: 'json', //服务器返回json格式数据
+					type: 'post', //HTTP请求类型
+					timeout: 10000, //超时时间设置为10秒；
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					async: false,
+					success: function(data) {
+						console.log(data);
+						result = data.access_token;
+					},
+					error: function(xhr, type, errorThrown) {
+						console.log(type);
+						result = "";
+					}
+				});
+				return result;
+			}
+						
+				function GetEventListData(authorInfo) {
+				var listResult = "";
+				mui.ajax('http://192.168.82.12/v2/eventIndex', {
+					data: {
+						type:'0',
+						lng:'0',
+						lat:'0',
+						pageIndex: '1',
+						pageSize : '20'
+					},
+					dataType: 'json', //服务器返回json格式数据
+					type: 'get', //HTTP请求类型
+					async: false,
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': authorInfo,
+					},
+					success: function(data) {
+						listResult = data.ClubEventList;
+					}
+				});
+				return listResult;
+			}
+		</script>
+		<style>
+
+		</style>
+	</head>
+
+	<body>
+		<div class="mui-content">
+				<ul class="mui-table-view" id="custom-tableView-EventList">
+	  			</ul>
+
+		</div>
+
+		<script>
+		function setupData(author){
+			
+			var listArray = eval(GetEventListData(author));
+			var cellDataSource = null;
+			var targetId = null;
+
+				for (var i = 0; i < listArray.length; i++) {
+				console.log(listArray[i])
+				targetId = listArray[i].EventId;
+				cellDataSource = '<li id='+targetId+' class="mui-table-view-cell mui-media" ><a href="javascript:;"><img class="mui-media-object mui-pull-left" src="'+listArray[i].EventIcon+'" /><div class="mui-media-body">'+listArray[i].EventName+'<p class="mui-ellipsis">'+listArray[i].EventDesc+'</div></a></li>';
+				$("#custom-tableView-EventList").append(cellDataSource);
+
+				(function(){  
+	        			var index = i;  
+		        document.getElementById(listArray[index].EventId).addEventListener('tap',function(){
+						console.log(listArray[index].EventId)
+						setupWebViewJavascriptBridge(function(bridge) {
+				         bridge.callHandler('JSTOOC', {'cellEventClickId':listArray[index].EventId}, function(response) {
+		                console.log('JS got response', response)
+			            })
+						});
+						});
+		    		 })();  
+
+			}	
+			}
+
+		</script>
+	</body>
+
+</html>

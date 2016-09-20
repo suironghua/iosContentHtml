@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<script src="js/mui.min.js"></script>
+		<link href="css/mui.min.css" rel="stylesheet" />
+		
+		<script type="text/javascript" charset="utf-8">
+		mui.init({
+		   pullRefresh : {
+		     container:"#refreshContainer",//下拉刷新容器标识，querySelector能定位的css选择器均可，比如：id、.class等
+		     down : {
+		       contentdown : "下拉可以刷新",//可选，在下拉可刷新状态时，下拉刷新控件上显示的标题内容
+		       contentover : "释放立即刷新",//可选，在释放可刷新状态时，下拉刷新控件上显示的标题内容
+		       contentrefresh : "正在刷新...",//可选，正在刷新状态时，下拉刷新控件上显示的标题内容
+		       callback :pullfresh //必选，刷新函数，根据具体业务来编写，比如通过ajax从服务器获取新数据；
+		     }
+		   }
+		
+		});
+		
+		function GetTokenValue(userName, passWord) {
+				var result = "";
+				mui.ajax('http://192.168.82.12/token', {
+					data: {
+						grant_type: 'password',
+						client_id: 'baoluo_ios',
+						client_secret: '123456',
+						username: userName,
+						password: passWord
+					},
+					dataType: 'json', //服务器返回json格式数据
+					type: 'post', //HTTP请求类型
+					timeout: 10000, //超时时间设置为10秒；
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					async: false,
+					success: function(data) {
+						console.log(data);
+						result = data.access_token;
+					},
+					error: function(xhr, type, errorThrown) {
+						console.log(type);
+						result = "";
+					}
+				});
+				return result;
+			}
+
+			var tokenValue = GetTokenValue('18565751993', '123456');
+			var author = 'bearer ' + tokenValue;
+		
+		function pullfresh() {
+			//用来处理列表数据的函数
+			var listArray = eval(GetListData(author));
+			var cellDataSource = null;
+			for (var i = 0; i < listArray.length; i++) {
+				cellDataSource = '<li class="mui-table-view-cell mui-media"><a href="javascript:;"><img class="mui-media-object mui-pull-left" src="'+listArray[i].ForumIcon+'" /><div class="mui-media-body">'+listArray[i].ForumName+'<p class="mui-ellipsis">'+listArray[i].FormDesc+'</div></a></li>';
+				$("#custom-tableView-List").append(cellDataSource);
+			}
+			
+			plus.ui.toast("刷新成功")
+		    //注意，加载完新数据后，必须执行如下代码，注意：若为ajax请求，则需将如下代码放置在处理完ajax响应数据之后
+		    mui('#refreshContainer').pullRefresh().endPulldownToRefresh();//结束刷新
+		}
+		
+		function GetListData(authorInfo) {
+				var listResult = "";
+				mui.ajax('http://192.168.82.12/api/forums', {
+					data: {
+						pageIndex: '1',
+						pageSize : '20'
+					},
+					dataType: 'json', //服务器返回json格式数据
+					type: 'get', //HTTP请求类型
+					async: false,
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': authorInfo,
+					},
+					success: function(data) {
+						listResult = data.Items;
+					}
+				});
+				return listResult;
+		}
+
+		</script>
+	</head>
+
+	<body>
+		
+	</body>
+
+</html>

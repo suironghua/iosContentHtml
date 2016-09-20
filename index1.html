@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<script src="js/mui.min.js"></script>
+		<script src="http://libs.baidu.com/jquery/2.1.4/jquery.min.js"></script>
+		<link href="css/mui.min.css" rel="stylesheet" />
+		<script type="text/javascript" charset="utf-8">
+		mui.init()
+		
+		var userNameNum = null;
+		var passWordNum = null;
+		var tokenValue = null;
+		var author = null;
+//与app交互
+		function setupWebViewJavascriptBridge(callback) {
+		    if (window.WebViewJavascriptBridge) { return callback(WebViewJavascriptBridge); }
+		    if (window.WVJBCallbacks) { return window.WVJBCallbacks.push(callback); }
+		    window.WVJBCallbacks = [callback];
+		    var WVJBIframe = document.createElement('iframe');
+		    WVJBIframe.style.display = 'none';
+		    WVJBIframe.src = 'wvjbscheme://__BRIDGE_LOADED__';
+		    document.documentElement.appendChild(WVJBIframe);
+		    setTimeout(function() { document.documentElement.removeChild(WVJBIframe) }, 0)
+		}
+
+		setupWebViewJavascriptBridge(function(bridge) {
+		    
+			bridge.registerHandler('OCTOJS', function(data, responseCallback) {
+		        console.log("JS Echo called with:", data)
+		        responseCallback(data)
+		        if(data.UserName && data.PassWord){
+		        	userNameNum = data.UserName;
+		        passWordNum = data.PassWord;
+
+				tokenValue = GetTokenValue(userNameNum, passWordNum);
+				author = 'bearer ' + tokenValue;
+				setupData(author);
+				}
+		    })
+		    bridge.callHandler('JSTOOC', {'key':'value'}, function responseCallback(responseData) {
+		        console.log("JS received response:", responseData)
+		    })
+		    
+		})
+
+
+			function GetTokenValue(userName, passWord) {
+				var result = "";
+				mui.ajax('http://192.168.82.12/token', {
+					data: {
+						grant_type: 'password',
+						client_id: 'baoluo_ios',
+						client_secret: '123456',
+						username: userName,
+						password: passWord
+					},
+					dataType: 'json', //服务器返回json格式数据
+					type: 'post', //HTTP请求类型
+					timeout: 10000, //超时时间设置为10秒；
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					async: false,
+					success: function(data) {
+						console.log(data);
+						result = data.access_token;
+					},
+					error: function(xhr, type, errorThrown) {
+						console.log(type);
+						result = "";
+					}
+				});
+				return result;
+			}
+
+			function GetBanners(authorInfo) {
+				if(authorInfo == null) return;
+				var bannerResult = "";
+				mui.ajax('http://192.168.82.12/api/banners', {
+					data: {
+						tab: '1'
+					},
+					dataType: 'json', //服务器返回json格式数据
+					type: 'get', //HTTP请求类型
+					async: false,
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': authorInfo,
+					},
+					success: function(data) {
+						bannerResult = data.Items;
+					}
+				});
+				return bannerResult;
+			}
+						
+				function GetListData(authorInfo) {
+				var listResult = "";
+				mui.ajax('http://192.168.82.12/api/forums', {
+					data: {
+						pageIndex: '1',
+						pageSize : '20'
+					},
+					dataType: 'json', //服务器返回json格式数据
+					type: 'get', //HTTP请求类型
+					async: false,
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': authorInfo,
+					},
+					success: function(data) {
+						listResult = data.Items;
+					}
+				});
+				return listResult;
+			}
+		</script>
+
+		<!--标准mui.css-->
+		<!--<link rel="stylesheet" href="../css/mui.min.css">-->
+		<!--App自定义的css-->
+		<!--<link rel="stylesheet" type="text/css" href="../css/app.css"/>-->
+		<style>
+			.mui-btn {
+				/*margin-left: 0px;*/
+				margin: 0px;
+				border-width: 0px;
+				/*margin-right: 10px;*/
+				width: 49%;
+				height: 60px;
+				text-align: center;
+			}
+			/*.mui-content
+			{
+				background-color: #FFFFFF;
+			}*/
+			
+			/*.center-total-Content{
+				width: 100%;
+				height: 50px;
+				background-color: #2AC845;
+			}
+			.center-left-Content{
+				display:inline;
+				width: 50%;
+				height: 50px;
+				background-color: #797979;
+
+				margin-left: 15%;
+				
+				text-align: center;
+			}
+			.center-right-Content{
+				display:inline;
+				width: 50%;
+				height: 50px;
+				margin-left: 20%;
+				background-color: #797979;
+				text-align: center;
+			}*/
+		</style>
+	</head>
+
+	<body>
+		<!--<header class="mui-bar mui-bar-nav">
+
+			<h1 class="mui-title">互动社区</h1>
+		</header>-->
+		<div class="mui-content">
+	    <!--<div id="refreshContainer" class="mui-content mui-scroll-wrapper">-->
+	      	<!--<div class="mui-scroll">-->
+				 <div class="mui-slider ">
+	            <div class="mui-slider-group" id="slider-img">
+	            </div>
+	            <!--注意这里面是图片滚动的标记，div的数量要和上面的匹配-->
+	            <div class="mui-slider-indicator" id="custom-slider-indicator">
+	            </div>
+	 			 </div>
+				
+	
+				<div class="mui-content-padded">
+					<button id="guildClick" type="button" class="mui-btn  mui-icon-home">
+			        	<img src="images/hdsq_btn_youxigonghui.png" style="width: 15px;height: 20px;">
+			            公会发现
+			        </button>
+					<button id="eventClick" type="button" class="mui-btn mui-icon-home">
+			        		<img src="images/hdsq_btn_huodongdating@3x.png"  style="width: 15px;height: 20px;">
+			            活动招募
+			        </button>
+				</div>
+				
+				<ul class="mui-table-view" id="custom-tableView-List">
+	  			</ul>
+			<!--</div>-->
+		</div>
+
+		<script>
+		function setupData(author){
+			var banners = eval(GetBanners(author));
+			var bannersList = null;
+				  for (var i = 0; i < banners.length; i++) {
+				//轮播图标签结构
+			      bannersList = '<div class="mui-slider-item"><a href="#"><img class="slider-img" src="'+banners[i].ImgUri+'" /> </a></div>'
+			     //插入slider-img标签里面
+			      $("#slider-img").append(bannersList);
+			     //插入轮播标记
+			     $("#custom-slider-indicator").append('<div class="mui-indicator"></div>')
+			     //插入完成必须初始化，否则图片不能滚动
+			     mui('.mui-slider').slider({
+			     interval:5000//自动轮播周期，若为0则不自动播放，默认为0；
+			     });    
+				}
+
+			
+			var listArray = eval(GetListData(author));
+			var cellDataSource = null;
+			var targetId = null;
+
+				for (var i = 0; i < listArray.length; i++) {
+				console.log(listArray[i])
+				targetId = listArray[i].ForumId;
+				cellDataSource = '<li id='+targetId+' class="mui-table-view-cell mui-media"><a href="javascript:;"><img class="mui-media-object mui-pull-left" src="'+listArray[i].ForumIcon+'" /><div class="mui-media-body">'+listArray[i].ForumName+'<p class="mui-ellipsis">'+listArray[i].FormDesc+'</div></a></li>';
+				$("#custom-tableView-List").append(cellDataSource);
+
+				(function(){  
+	        			var index = i;  
+		        document.getElementById(listArray[index].ForumId).addEventListener('tap',function(){
+						console.log(listArray[index].ForumId)
+						setupWebViewJavascriptBridge(function(bridge) {
+				         bridge.callHandler('JSTOOC', {'cellClickId':listArray[index].ForumId}, function(response) {
+		                console.log('JS got response', response)
+			            })
+						});
+						});
+		    		 })();  
+
+			}	
+			}
+			
+		//点击公会发现
+		document.getElementById("guildClick").addEventListener('tap',function(){
+			setupWebViewJavascriptBridge(function(bridge) {
+		         bridge.callHandler('JSTOOC', {'guildClick': 'noData'}, function(response) {
+                console.log('JS got response', response)
+            })
+		});
+		});
+		//点击活动招募
+		document.getElementById("eventClick").addEventListener('tap',function(){
+			setupWebViewJavascriptBridge(function(bridge) {
+		         bridge.callHandler('JSTOOC', {'eventClick': 'noData'}, function(response) {
+                console.log('JS got response', response)
+            })
+		});
+		});
+
+		//点击cell
+//		for(i = 0; i < listArray.length; i++){  
+//	    (function(){  
+//	        var index = i;  
+//	        document.getElementById("targetIdNum"+index).addEventListener('tap',function(){
+//					console.log(listArray[index].ForumId)
+//					setupWebViewJavascriptBridge(function(bridge) {
+//			         bridge.callHandler('JSTOOC', {'cellClickId':listArray[index].ForumId}, function(response) {
+//	                console.log('JS got response', response)
+//		            })
+//					});
+//					});
+//	     })();  
+// }  
+
+		</script>
+	</body>
+
+</html>
